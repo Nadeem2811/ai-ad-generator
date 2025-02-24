@@ -1,71 +1,43 @@
 #!/bin/bash
 
-# Set up AI Ad Copy Generator on macOS
+echo "🚀 Setting up AI Ad Generator..."
 
-echo "🚀 Setting up your AI Ad Copy Generator..."
+# Step 1: Update and Install Dependencies
+echo "🔄 Updating system packages..."
+sudo apt update && sudo apt upgrade -y
 
-# Step 1: Ensure Python is Installed
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 not found. Installing..."
-    brew install python
-else
-    echo "✅ Python3 is already installed."
-fi
+# Step 2: Install Python and Virtual Environment
+echo "🐍 Installing Python 3 and pip..."
+sudo apt install -y python3 python3-pip python3-venv
 
-# Step 2: Create a Virtual Environment
-echo "🔄 Creating a virtual environment..."
-python3 -m venv ad_env
-source ad_env/bin/activate
+# Step 3: Clone GitHub Repository
+echo "🔄 Cloning your GitHub repository..."
+git clone https://github.com/nadeem2811/ai-ad-generator.git
+cd ai-ad-generator
 
-# Step 3: Install Dependencies
-echo "📦 Installing Flask & OpenAI..."
+# Step 4: Create Virtual Environment
+echo "🌎 Creating virtual environment..."
+python3 -m venv venv
+source venv/bin/activate
+
+# Step 5: Install Dependencies
+echo "📦 Installing required Python packages..."
 pip install --upgrade pip
-pip install Flask openai
+pip install flask openai gunicorn
 
-# Step 4: Prompt for OpenAI API Key
-echo "🔑 Enter your OpenAI API Key:"
-read -s OPENAI_API_KEY
-echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> ~/.bash_profile
-source ~/.bash_profile
+# Step 6: Create `requirements.txt`
+echo "📜 Generating requirements.txt..."
+pip freeze > requirements.txt
 
-# Step 5: Create Flask API Script
-echo "📜 Creating AI Ad Generator API..."
-cat <<EOL > app.py
-from flask import Flask, request, jsonify
-import openai
-import os
+# Step 7: Push `requirements.txt` to GitHub
+echo "📤 Pushing requirements.txt to GitHub..."
+git add requirements.txt
+git commit -m "Added requirements.txt"
+git push origin main
 
-app = Flask(__name__)
+# Step 8: Deploy on Render
+echo "🚀 Deployment to Render..."
+echo "✅ Go to https://dashboard.render.com/ and redeploy your service."
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+echo "🎉 Setup complete! Your AI Ad Generator is now ready."
 
-@app.route('/generate_ad', methods=['POST'])
-def generate_ad():
-    data = request.get_json()
-    product = data.get('product')
-    audience = data.get('audience')
-    platform = data.get('platform')
-
-    if not all([product, audience, platform]):
-        return jsonify({'error': 'Missing required parameters'}), 400
-
-    prompt = f"Write an engaging ad for {product} targeting {audience} to be used on {platform}."
-
-    try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
-            max_tokens=100
-        )
-        ad_copy = response.choices[0].text.strip()
-        return jsonify({'ad_copy': ad_copy})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
-EOL
-
-# Step 6: Run Flask Server
-echo "🚀 Starting AI Ad Generator..."
-python app.py
